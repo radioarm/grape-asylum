@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import abc
-import hydra
-import uuid
 import contextlib
+import hydra
 import omegaconf
 import os
 import shutil
+import uuid
 
 from alive_progress import alive_bar
 from xml.etree import ElementTree as et
@@ -15,12 +15,17 @@ from utils import get_files_in_dir
 
 
 class AbstractVOCProcessStrategy(abc.ABC):
+    ''' Abstract VOC file process strategy '''
     @abc.abstractmethod
     def apply(self, subtree: et.Element) -> et.Element:
         pass
 
 
 class MoveBBCHCodeStrategy(AbstractVOCProcessStrategy):
+    '''
+        A strategy for extracting BBCH from attribute section
+        of the XML file and place in the name tag
+    '''
     def apply(self, grape_data_tree: et.Element) -> et.Element:
         for grape_object in grape_data_tree.findall('object'):
             bbch = grape_object.find('.//attribute[name="BBCH"]/value').text
@@ -29,6 +34,9 @@ class MoveBBCHCodeStrategy(AbstractVOCProcessStrategy):
 
 
 class RemoveRotatedGrapesStrategy(AbstractVOCProcessStrategy):
+    '''
+        A strategy for removing object subtree if the rotation is applied
+    '''
     def apply(self, grape_data_tree: et.Element) -> et.Element:
         for grape_object in grape_data_tree.findall('object'):
             with contextlib.suppress(AttributeError):
@@ -40,7 +48,27 @@ class RemoveRotatedGrapesStrategy(AbstractVOCProcessStrategy):
         return grape_data_tree
 
 
+class GeneralizeBBCHCodeStrategy(AbstractVOCProcessStrategy):
+    '''
+        A strategy for casting specific BBCH code
+        for their more general category accordin to
+
+        https://en.wikipedia.org/wiki/BBCH-scale
+
+    '''
+    def apply(self, grape_data_tree: et.Element) -> et.Element:
+        for grape_object in grape_data_tree.findall('object'):
+            name_element = grape_object.find('./name')
+            name_element.text = name_element.text[0]
+        return grape_data_tree
+
+
 class VOCProcessor(abc.ABC):
+    '''
+    A VOC XML tree processor, accepts a list of strategies during initialization
+    and subsequently applies them to the given subtree
+    '''
+
     def __init__(self, strategies: list[AbstractVOCProcessStrategy]) -> None:
         self.strategies = strategies
 
@@ -78,12 +106,16 @@ def process_dataset(
         for xml_file in origin_voc_fileset:
             progress_bar.text = f'Processing {xml_file}'
 
+            # parse a given xml file and create subtree represenations
             xml_doc = et.parse(xml_file)
             root = xml_doc.getroot()
 
+            # apply transformation strategies
             voc_processor.process(root)
 
             if subtree_has_grapes(root):
+                # if any grape bunch remains rename the file with random uuid
+                # and place it in the targer directory
 
                 img_filename = get_grape_img_filename(root)
                 img_extension = img_filename.split('.')[-1]
@@ -101,14 +133,15 @@ def process_dataset(
 
 @hydra.main(version_base=None, config_path='conf', config_name='config')
 def run(cfg: omegaconf.DictConfig) -> None:
-    with contextlib.suppress(FileExistsError):
-        os.makedirs(cfg.data.output_annotation)
-        os.makedirs(cfg.data.output_photos)
+
+    os.makedirs(cfg.data.output_annotation, exist_ok=True)
+    os.makedirs(cfg.data.output_photos, exist_ok=True)
 
     voc_processor = VOCProcessor(
         strategies=[
             MoveBBCHCodeStrategy(),
             RemoveRotatedGrapesStrategy(),
+            GeneralizeBBCHCodeStrategy(),
         ]
     )
 
