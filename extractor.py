@@ -122,8 +122,16 @@ def process_dataset(
                 origin_img_file_path = f'{origin_img_files_path}{img_filename}'
 
                 filename = uuid.uuid4()
-                target_img_filepath = f'{output_photos_path}{filename}.{img_extension}'
-                target_xml_filepath = f'{output_annotation_path}{filename}.xml'
+                target_xml_filename = f'{filename}.xml'
+                target_img_filename = f'{filename}.{img_extension}'
+
+                target_img_filepath = f'{output_photos_path}{target_img_filename}'
+                target_xml_filepath = f'{output_annotation_path}{target_xml_filename}'
+
+                # remove folder name from xml tree
+                root.find('./folder').text = ''
+                # update img filename in the xml tree
+                root.find('./filename').text = target_img_filename
 
                 xml_doc.write(target_xml_filepath)
                 shutil.copy(origin_img_file_path, target_img_filepath)

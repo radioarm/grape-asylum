@@ -9,4 +9,6 @@ data:
 voc_transformer:
   source_annotations_path: data/output/annotations/
   target_annotation_path: data/output/annotations/json/
+stats:
+  xml_directory_path: data/output/annotations/
 ```
