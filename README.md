@@ -1,0 +1,12 @@
+Create conf/config.yaml, the example  content is as follows:
+
+```yaml
+data:
+  photos: data/photos/
+  annotations: data/annotations/
+  output_annotation: data/output/annotations/
+  output_photos: data/output/photos/
+voc_transformer:
+  source_annotations_path: data/output/annotations/
+  target_annotation_path: data/output/annotations/json/
+```
