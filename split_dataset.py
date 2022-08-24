@@ -63,7 +63,6 @@ def main(
     validation_set = file_pairs[train_count:]
 
     # move files to respective subdirs
-
     with alive_bar(
         train_count, dual_line=True, title='Copying training files'
     ) as progress_bar:
@@ -88,8 +87,7 @@ def main(
             )
             shutil.copy(
                 validation_annotation,
-                target_validation_annotations_dir
-                + extract_filename(validation_annotation),
+                target_validation_annotations_dir + extract_filename(validation_annotation),
             )
             progress_bar()
 

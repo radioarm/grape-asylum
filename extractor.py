@@ -48,6 +48,40 @@ class RemoveRotatedGrapesStrategy(AbstractVOCProcessStrategy):
         return grape_data_tree
 
 
+class RemoveUnwantedBBCHAnnotationsStrategy(AbstractVOCProcessStrategy):
+    '''
+        A strategy for removing object subtree if the BBCH code is not in the given list
+    '''
+
+    def __init__(self, bbch_codes: list[str]):
+        self.bbch_codes = bbch_codes
+
+    def apply(self, grape_data_tree: et.Element) -> et.Element:
+        for grape_object in grape_data_tree.findall('object'):
+            name_element = int(grape_object.find('./name').text)
+            if name_element not in self.bbch_codes:
+                grape_data_tree.remove(grape_object)
+        return grape_data_tree
+
+
+class ClusterBBCHCodeStrategy(AbstractVOCProcessStrategy):
+    def __init__(self, bbch_code_clusters: list[list[int]]):
+        self.bbch_code_clusters = {}
+        for cluster in bbch_code_clusters:
+            cluster_str_repr = '_'.join([str(elem) for elem in cluster])
+            for elem in cluster:
+                self.bbch_code_clusters[str(elem)] = cluster_str_repr
+
+    def apply(self, grape_data_tree: et.Element) -> et.Element:
+        for grape_object in grape_data_tree.findall('object'):
+            name_element = grape_object.find('./name')
+            if name_element.text not in self.bbch_code_clusters:
+                grape_data_tree.remove(grape_object)
+            else:
+                name_element.text = self.bbch_code_clusters[name_element.text]
+        return grape_data_tree
+
+
 class GeneralizeBBCHCodeStrategy(AbstractVOCProcessStrategy):
     '''
         A strategy for casting specific BBCH code
@@ -63,7 +97,7 @@ class GeneralizeBBCHCodeStrategy(AbstractVOCProcessStrategy):
         return grape_data_tree
 
 
-class VOCProcessor(abc.ABC):
+class VOCProcessor:
     '''
     A VOC XML tree processor, accepts a list of strategies during initialization
     and subsequently applies them to the given subtree
@@ -149,7 +183,9 @@ def run(cfg: omegaconf.DictConfig) -> None:
         strategies=[
             MoveBBCHCodeStrategy(),
             RemoveRotatedGrapesStrategy(),
-            GeneralizeBBCHCodeStrategy(),
+            # RemoveUnwantedBBCHAnnotationsStrategy(cfg.data.required_bbch_codes)
+            ClusterBBCHCodeStrategy(cfg.data.bbch_code_clusters)
+            # GeneralizeBBCHCodeStrategy(),
         ]
     )
 
