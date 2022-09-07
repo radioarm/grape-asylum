@@ -25,10 +25,10 @@ class GrapeBndBox:
     bbch: str = ''
 
     @property
-    def area(self):
+    def area(self) -> tuple[int, int, int, int]:
         '''coordinates of points of corners of bounding box rectangle.
         '''
-        return (self.x_min, self.y_min, self.x_max, self.y_max)
+        return (int(self.x_min), int(self.y_min), int(self.x_max), int(self.y_max))
 
 
 def process_annotations_dir(fileset: list[str]) -> tuple[list[GrapeBndBox], set[str]]:
