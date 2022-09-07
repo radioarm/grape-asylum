@@ -3,6 +3,11 @@
 outputs/
 conf/
 data/
+outputs/
+output_cropped/
+
+*.tar.gz
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
